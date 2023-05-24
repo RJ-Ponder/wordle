@@ -1,0 +1,32 @@
+do a wordle, mastermind mashup. Meaning, on the side, let the player know how many letters are in the correct spot, and how many letters are in the word, but not which letters
+do this by a layout of 3 x 2
+
+[-][-][-] # no letters in right place or in word
+ [-][-]
+
+[x][o][-] one letter in right place, one other letter in word
+ [-][-]
+
+[x][o][o] one letter in right place, two other letters in word
+ [-][-]
+ 
+ WordleMind Algorithm
+GUESS_WORD_BANK
+KEY_WORD_BANK
+New game, select from the key word bank (randomly)
+Prompt user for first guess
+Validate input:
+-	Too short
+-	Too long
+-	Not in word list
+After valid input, show their guess with the number of correctly placed and correct letters
+10 guess total
+Clear screen and show how many guess are left
+e.g.
+Keyword: TRACK
+1st Guess: BRAKE
+Return: BRAKE [x][x][o]
+               [-][-]
+2nd Guess: BAKED
+Return: BAKED [o][o][-]
+		             [-][-]
