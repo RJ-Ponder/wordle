@@ -1,9 +1,10 @@
 require 'colorize'
 require_relative 'guess_words'
 require_relative 'key_words'
+require 'pry'
 
 class Wordle
-  attr_accessor :secret_word, :num_guesses, :guesses, :secret_word_length, :guess_count
+  attr_accessor :secret_word, :num_guesses, :guesses, :secret_word_length, :guess_count, :guess_scores, :scores
   
   def initialize(secret_word, num_guesses)
     @secret_word = secret_word.upcase
@@ -12,13 +13,14 @@ class Wordle
     @guesses = Hash.new
     @guess_count = 1
     
-    @keyboard_first_row = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]
-    @keyboard_second_row = ["", "A", "S", "D", "F", "G", "H", "J", "K", "L"]
-    @keyboard_third_row = [" ", "", "Z", "X", "C", "V", "B", "N", "M"]
+
+    @guess_scores = {}
+    @scores = [0, 0, 0] # make it's own class?
   end
 
   def generate_game_board
     counter = 1
+    puts "               " + "=> good, okay, bad"
     while counter <= num_guesses
       puts divider_line
       puts guess_line(counter)
@@ -28,47 +30,29 @@ class Wordle
   end
   
   def divider_line
-    "  +" + "-+" * (secret_word_length)
+    "   +" + "-+" * (secret_word_length)
   end
   
   def guess_line(counter)
-    beginning = "#{counter} |"
+    beginning = "#{counter.to_s.rjust(2, " ")} |"
     middle = if @guesses[counter] != nil
                @guesses[counter]
              else
                (" " * secret_word_length).chars.join("|")
              end
     last = "|"
-    beginning + middle + last
+    beginning + middle + last + " => " + score(counter)
   end
   
-  def add_keyboard_color(colorized_letter, time)
-    if @keyboard_first_row.include?(colorized_letter.uncolorize) || @keyboard_first_row.include?(colorized_letter.light_black) || @keyboard_first_row.include?(colorized_letter.yellow)
-      index = @keyboard_first_row.index(colorized_letter.yellow)
-      index = @keyboard_first_row.index(colorized_letter.light_black) if index.nil?
-      index = @keyboard_first_row.index(colorized_letter.uncolorize) if index.nil?
-      @keyboard_first_row[index] = colorized_letter
-    elsif @keyboard_second_row.include?(colorized_letter.uncolorize) || @keyboard_second_row.include?(colorized_letter.light_black) || @keyboard_second_row.include?(colorized_letter.yellow)
-      index = @keyboard_second_row.index(colorized_letter.yellow)
-      index = @keyboard_second_row.index(colorized_letter.light_black) if index.nil?
-      index = @keyboard_second_row.index(colorized_letter.uncolorize) if index.nil?
-      @keyboard_second_row[index] = colorized_letter
-    elsif @keyboard_third_row.include?(colorized_letter.uncolorize) || @keyboard_third_row.include?(colorized_letter.light_black) || @keyboard_third_row.include?(colorized_letter.yellow)
-      index = @keyboard_third_row.index(colorized_letter.yellow)
-      index = @keyboard_third_row.index(colorized_letter.light_black) if index.nil?
-      index = @keyboard_third_row.index(colorized_letter.uncolorize) if index.nil?
-      @keyboard_third_row[index] = colorized_letter
+  def score(counter)
+    if @guess_scores[counter]
+       @guess_scores[counter].join(", ")
     else
-      return
+      ""
     end
+    # return a string with the score
   end
-  
-  def display_keyboard
-    puts @keyboard_first_row.join(" ")
-    puts @keyboard_second_row.join(" ")
-    puts @keyboard_third_row.join(" ")
-  end
-  
+
   def get_indexed_letter(word)
     indexed_letter = {}
     word.chars.each_with_index do |value, index|
@@ -94,12 +78,13 @@ class Wordle
     
     indexed_guess.each do |key, value|
       if indexed_guess[key] == indexed_secret_word[key]
-        colorized_guess[key] = value.green
-        add_keyboard_color(colorized_guess[key], "green")
+        colorized_guess[key] = value
+        guess_scores[guess_count] = scores
+        guess_scores[guess_count][0] += 1
         green_and_yellow_counts[value] += 1
       else
-        colorized_guess[key] = value.light_black
-        add_keyboard_color(colorized_guess[key], "grey")
+        colorized_guess[key] = value
+        
       end
     end
     
@@ -107,10 +92,13 @@ class Wordle
       if indexed_guess[key] == indexed_secret_word[key]
         next
       elsif indexed_secret_word.values.include?(value) && (green_and_yellow_counts[value] < secret_word_letter_frequency[value])
-        colorized_guess[key] = value.yellow
-        add_keyboard_color(colorized_guess[key], "yellow")
+        colorized_guess[key] = value
+        guess_scores[guess_count] = scores
+        guess_scores[guess_count][1] += 1
         green_and_yellow_counts[value] += 1
       else
+        guess_scores[guess_count] = scores
+        guess_scores[guess_count][2] += 1
         next
       end
     end
@@ -126,7 +114,7 @@ class Wordle
     
     until won? || lost?
       generate_game_board # Board.display clear the boards except messages
-      display_keyboard
+      @scores = [0, 0, 0]
       guess = gets.chomp.upcase
       
       if guess.length != secret_word.length
@@ -143,7 +131,7 @@ class Wordle
     end
     
     generate_game_board
-    display_keyboard
+
     if won?
       puts "Congratulations, you won! The secret word was '#{secret_word}'."
     else
@@ -170,7 +158,7 @@ class GameBoard
   end
 end
 
-Wordle.new(KEY_WORDS.sample, 6).play
+Wordle.new(KEY_WORDS.sample, 10).play
 
 # REFACTORING
 ## extract all messaging to its own class or file
